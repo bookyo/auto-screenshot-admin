@@ -11,7 +11,6 @@ import {
   Tooltip 
 } from '@mui/material';
 import { 
-  Menu as MenuIcon, 
   Notifications as NotificationsIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon

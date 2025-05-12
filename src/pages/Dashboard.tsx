@@ -6,7 +6,6 @@ import {
   Typography, 
   Card, 
   CardContent, 
-  CardHeader,
   List,
   ListItem,
   ListItemText,
@@ -22,7 +21,7 @@ import {
 import { getUsers } from '../services/userService';
 import { getMediaList } from '../services/mediaService';
 import { getMaccmsList } from '../services/maccmsService';
-import { User, Media, Maccms } from '../types';
+import { Media } from '../types';
 
 const Dashboard: React.FC = () => {
   const [usersCount, setUsersCount] = useState<number>(0);
