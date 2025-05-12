@@ -1,4 +1,4 @@
-import { User, CreateUserRequest, PaginatedResponse } from '../types';
+import { User, CreateUserRequest } from '../types';
 import { apiRequest } from './api';
 
 export const getUsers = async (): Promise<User[]> => {
