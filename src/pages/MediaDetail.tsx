@@ -394,7 +394,7 @@ const MediaDetail: React.FC = () => {
                         {episode.screenshots.map((screenshot, idx) => (
                           <ImageListItem key={idx}>
                             <img
-                              src={'https://api.reelbit.cc' + screenshot.replace('./public', '')}
+                              src={'https://api.reelbit.cc' + screenshot.replace('public', '')}
                               alt={`Screenshot ${idx + 1}`}
                               loading="lazy"
                               style={{ maxHeight: '200px', objectFit: 'cover' }}
