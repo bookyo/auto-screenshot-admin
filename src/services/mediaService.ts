@@ -48,3 +48,7 @@ export const updateEpisode = async (mediaId: string, episodeId: string, episodeD
 export const deleteEpisode = async (mediaId: string, episodeId: string): Promise<Media> => {
   return await apiRequest<Media>('DELETE', `/api/media/${mediaId}/episodes/${episodeId}`);
 };
+
+export const getEpisodeDetails = async (mediaId: string, episodeId: string): Promise<Media> => {
+  return await apiRequest<Media>('GET', `/api/media/${mediaId}/${episodeId}`);
+};

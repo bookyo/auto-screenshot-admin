@@ -39,7 +39,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { getMediaById, updateEpisode, addEpisode, deleteEpisode } from '../services/mediaService';
+import { getMediaById, updateEpisode, addEpisode, deleteEpisode, getEpisodeDetails } from '../services/mediaService';
 import { Media, Episode } from '../types';
 
 const episodeValidationSchema = Yup.object({
@@ -52,10 +52,12 @@ const MediaDetail: React.FC = () => {
   const navigate = useNavigate();
   const [media, setMedia] = useState<Media | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingEpisode, setLoadingEpisode] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [editingEpisode, setEditingEpisode] = useState<Episode | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
+  const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -69,6 +71,7 @@ const MediaDetail: React.FC = () => {
     try {
       setLoading(true);
       const mediaData = await getMediaById(id);
+      // Handle the updated API response format
       setMedia(mediaData);
     } catch (error) {
       console.error('Error fetching media details:', error);
@@ -159,6 +162,60 @@ const MediaDetail: React.FC = () => {
     setOpenDialog(false);
     setEditingEpisode(null);
     formik.resetForm();
+  };
+
+  const handleEpisodeExpand = async (expanded: boolean, episode: Episode) => {
+    if (!id || !episode._id) return;
+    
+    if (expanded) {
+      setExpandedEpisode(episode._id);
+      
+      // Only fetch details if we don't already have screenshots or video data
+      const hasDetails = 'screenshots' in episode || 'video' in episode;
+      if (!hasDetails) {
+        try {
+          setLoadingEpisode(episode._id);
+          const detailedData = await getEpisodeDetails(id, episode._id);
+          
+          // Find the detailed episode in the response
+          const detailedEpisode = detailedData.episodesList?.find(ep => ep._id === episode._id);
+          
+          if (detailedEpisode) {
+            // Update just this episode in the media state
+            setMedia(prevMedia => {
+              if (!prevMedia) return prevMedia;
+              
+              const updatedEpisodes = prevMedia.episodesList?.map(ep => {
+                if (ep._id === episode._id) {
+                  return {
+                    ...ep,
+                    screenshots: detailedEpisode.screenshots,
+                    video: detailedEpisode.video
+                  };
+                }
+                return ep;
+              });
+              
+              return {
+                ...prevMedia,
+                episodesList: updatedEpisodes
+              };
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching episode details:', error);
+          setSnackbar({
+            open: true,
+            message: 'Failed to fetch episode details',
+            severity: 'error',
+          });
+        } finally {
+          setLoadingEpisode(null);
+        }
+      }
+    } else {
+      setExpandedEpisode(null);
+    }
   };
 
   const handleDeleteClick = (episode: Episode) => {
@@ -357,83 +414,108 @@ const MediaDetail: React.FC = () => {
 
       {media.episodesList && media.episodesList.length > 0 ? (
         <List>
-          {media.episodesList.map((episode, index) => (
-            <Accordion key={episode._id || index}>
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls={`episode-${index}-content`}
-                id={`episode-${index}-header`}
+          {media.episodesList.map((episode, index) => {
+            // Determine if we have detailed episode data with screenshots and video
+            const hasDetailedData = 'screenshots' in episode || 'video' in episode;
+            const isExpanded = expandedEpisode === episode._id;
+            const isLoading = loadingEpisode === episode._id;
+            
+            return (
+              <Accordion 
+                key={episode._id || index}
+                expanded={isExpanded}
+                onChange={(_, expanded) => handleEpisodeExpand(expanded, episode)}
               >
-                <Typography sx={{ width: '33%', flexShrink: 0 }}>
-                  Episode: {episode.episode}
-                </Typography>
-                <Typography sx={{ color: 'text.secondary' }}>
-                  {episode.screenshots?.length || 0} screenshots
-                  {episode.video ? ' | Has video' : ''}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  {episode.video && (
-                    <Grid size={{ xs: 12 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <VideoIcon sx={{ mr: 1 }} />
-                        <Typography variant="body1" component="a" href={'https://api.reelbit.cc' + episode.video.replace('./public', '')} target="_blank" rel="noopener noreferrer">
-                          {episode.video}
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="subtitle1">
+                    Episode: {episode.episode}
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {isLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                      <CircularProgress size={40} />
+                    </Box>
+                  ) : hasDetailedData ? (
+                    <>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Video URL:
                         </Typography>
+                        {'video' in episode && episode.video ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <VideoIcon sx={{ mr: 1, color: 'primary.main' }} />
+                            <Typography variant="body2" component="a" href={'https://api.reelbit.cc' + episode.video} target="_blank" rel="noopener" sx={{ wordBreak: 'break-all' }}>
+                              {episode.video}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No video URL provided
+                          </Typography>
+                        )}
                       </Box>
-                    </Grid>
-                  )}
-                  
-                  {episode.screenshots && episode.screenshots.length > 0 && (
-                    <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle1" gutterBottom>
+
+                      <Typography variant="subtitle2" gutterBottom>
                         Screenshots:
                       </Typography>
-                      <ImageList cols={3} gap={8}>
-                        {episode.screenshots.map((screenshot, idx) => (
-                          <ImageListItem key={idx}>
-                            <img
-                              src={'https://api.reelbit.cc' + screenshot.replace('public', '')}
-                              alt={`Screenshot ${idx + 1}`}
-                              loading="lazy"
-                              style={{ maxHeight: '200px', objectFit: 'cover' }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=Image+Error';
-                              }}
-                            />
-                          </ImageListItem>
-                        ))}
-                      </ImageList>
-                    </Grid>
+                      {'screenshots' in episode && episode.screenshots && episode.screenshots.length > 0 ? (
+                        <ImageList sx={{ width: '100%', maxHeight: 300 }} cols={3} rowHeight={164}>
+                          {episode.screenshots.map((screenshot, index) => (
+                            <ImageListItem key={index}>
+                              <img
+                                src={`https://api.reelbit.cc${screenshot}?w=164&h=164&fit=crop&auto=format`}
+                                srcSet={`https://api.reelbit.cc${screenshot}?w=164&h=164&fit=crop&auto=format`}
+                                alt={`Screenshot ${index + 1}`}
+                                loading="lazy"
+                              />
+                            </ImageListItem>
+                          ))}
+                        </ImageList>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No screenshots available
+                        </Typography>
+                      )}
+                    </>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Click Edit to add screenshots and video for this episode
+                    </Typography>
                   )}
-                  
-                  <Grid size={{ xs: 12 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                      <Button
-                        startIcon={<EditIcon />}
-                        onClick={() => handleOpenDialog(episode)}
-                        sx={{ mr: 1 }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        startIcon={<DeleteIcon />}
-                        color="error"
-                        onClick={() => handleDeleteClick(episode)}
-                      >
-                        Delete
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          ))}
+
+                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button
+                      startIcon={<EditIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDialog(episode);
+                      }}
+                      sx={{ mr: 1 }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      startIcon={<DeleteIcon />}
+                      color="error"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(episode);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            );
+          })}
         </List>
       ) : (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="body1">No episodes found</Typography>
+          <Typography variant="body1" color="text.secondary">
+            No episodes available for this media.
+          </Typography>
         </Paper>
       )}
 

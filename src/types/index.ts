@@ -37,8 +37,8 @@ export interface Translation {
 export interface Episode {
   _id?: string;
   episode: string;
-  screenshots: string[];
-  video: string;
+  screenshots?: string[];
+  video?: string;
 }
 
 export interface Character {
@@ -56,7 +56,9 @@ export interface Media {
   duration: number;
   episodes: number;
   year: number;
-  episodesList: Episode[];
+  cover: string;
+  episodesList?: Episode[];
+  episodesListLength?: number;
   characters: Character[];
   tags: string[];
   status: MediaStatus;
