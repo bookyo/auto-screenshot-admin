@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
         
         // Fetch media with pagination
         const mediaResponse = await getMediaList({ limit: 5, sort: 'createdAt:desc' });
-        setMediaCount(mediaResponse.total);
+        setMediaCount(mediaResponse.pagination.total);
         setRecentMedia(mediaResponse.data);
         
         // Fetch maccms count

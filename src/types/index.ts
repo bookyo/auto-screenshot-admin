@@ -142,10 +142,14 @@ export interface Download {
 }
 
 // Pagination
-export interface PaginatedResponse<T> {
-  data: T[];
+export interface PaginationInfo {
   total: number;
   page: number;
   limit: number;
-  totalPages: number;
+  pages: number;
+}
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    pagination: PaginationInfo;
 }

@@ -91,7 +91,7 @@ const MediaList: React.FC = () => {
       
       const response = await getMediaList(params);
       setMediaList(response.data);
-      setTotalPages(response.totalPages);
+      setTotalPages(response.pagination.pages);
     } catch (error) {
       console.error('Error fetching media:', error);
       setSnackbar({
