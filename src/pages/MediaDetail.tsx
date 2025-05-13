@@ -378,7 +378,7 @@ const MediaDetail: React.FC = () => {
                     <Grid size={{ xs: 12 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                         <VideoIcon sx={{ mr: 1 }} />
-                        <Typography variant="body1" component="a" href={episode.video} target="_blank" rel="noopener noreferrer">
+                        <Typography variant="body1" component="a" href={'https://api.reelbit.cc' + episode.video.replace('./public', '')} target="_blank" rel="noopener noreferrer">
                           {episode.video}
                         </Typography>
                       </Box>
@@ -394,7 +394,7 @@ const MediaDetail: React.FC = () => {
                         {episode.screenshots.map((screenshot, idx) => (
                           <ImageListItem key={idx}>
                             <img
-                              src={screenshot}
+                              src={'https://api.reelbit.cc' + screenshot.replace('./public', '')}
                               alt={`Screenshot ${idx + 1}`}
                               loading="lazy"
                               style={{ maxHeight: '200px', objectFit: 'cover' }}
